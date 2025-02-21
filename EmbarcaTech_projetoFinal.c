@@ -28,6 +28,7 @@ void setup_inicial(){
     gpio_set_dir(LED_RED, GPIO_OUT);
     gpio_init(LED_GREEN);
     gpio_set_dir(LED_GREEN, GPIO_OUT);
+    gpio_put(LED_GREEN, 1);
 
     // Inicializa o I2C
     i2c_init(I2C_PORT, 400 * 1000);
@@ -51,13 +52,8 @@ void setup_inicial(){
 
 int main(){
 
-    char caracter = 'A';
     stdio_init_all();
     setup_inicial();
-
-    ssd1306_fill(&ssd, false); 
-    ssd1306_draw_char(&ssd, caracter, 64, 32); // Imprime no display
-    ssd1306_send_data(&ssd);
 
     while (true) {
         adc_select_input(0);
@@ -65,6 +61,26 @@ int main(){
         adc_select_input(1);
         uint16_t joyY_valor = adc_read();
         printf("VRX: %d | VRY: %d\n", joyX_valor, joyY_valor);
-        sleep_ms(1000);
+        if(joyX_valor >= 3000 || joyY_valor >= 3000){
+            gpio_put(LED_GREEN, 0);
+            gpio_put(LED_RED, 1);
+            ssd1306_fill(&ssd, false);
+            ssd1306_draw_string(&ssd, "CUIDADO", 37, 20);
+            ssd1306_draw_string(&ssd, "NIVEIS DE GAS", 13, 30);
+            ssd1306_draw_string(&ssd, "ELEVADO", 37, 40);
+            ssd1306_send_data(&ssd);
+        }
+        else{
+            gpio_put(LED_GREEN, 1);
+            gpio_put(LED_RED, 0);
+            ssd1306_fill(&ssd, false);
+            ssd1306_draw_string(&ssd, "Niveis normais", 10, 20);
+            ssd1306_draw_string(&ssd, "de gas", 40, 30);
+            ssd1306_draw_string(&ssd, "Bom dia", 37, 40);
+            ssd1306_send_data(&ssd);
+        }
+        sleep_ms(100);
     }
+
+    return 0;
 }
