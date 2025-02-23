@@ -15,7 +15,7 @@
 #define LED_GREEN 11
 #define joyX 26
 #define joyY 27
-#define buzzer 10
+#define BUZZER 10
 
 // Defines específicos do display
 #define I2C_PORT i2c1
@@ -28,8 +28,8 @@ ssd1306_t ssd;
 
 // Função para fazer o setup inicial
 void setup_inicial(){
+    
     // Inicialização do LED's
-
     gpio_init(LED_RED);
     gpio_set_dir(LED_RED, GPIO_OUT);
     gpio_init(LED_GREEN);
@@ -55,13 +55,14 @@ void setup_inicial(){
     adc_gpio_init(joyX);
     adc_gpio_init(joyY);
 
-    // Inicializa o PWM do Buzzer
-    gpio_init(buzzer);
-    gpio_set_function(buzzer, GPIO_FUNC_PWM);
+    // Inicializa o PWM do buzzer
+    gpio_init(BUZZER);
+    gpio_set_function(BUZZER, GPIO_FUNC_PWM);
 }
 
+// Função para soar o alarme
 void sirene(uint freq_grave, uint freq_agudo, uint duration) {
-    uint slice_num = pwm_gpio_to_slice_num(buzzer);
+    uint slice_num = pwm_gpio_to_slice_num(BUZZER);
     pwm_set_enabled(slice_num, true);
     uint clock = 125000000; // Frequência do clock do PWM (125 MHz)
     uint wrap_value_grave = clock / freq_grave; // Valor de wrap para a frequência grave
@@ -71,20 +72,21 @@ void sirene(uint freq_grave, uint freq_agudo, uint duration) {
     while (absolute_time_diff_us(start_time, get_absolute_time()) < duration * 1000) {
         // Toca a frequência grave (PEN)
         pwm_set_wrap(slice_num, wrap_value_grave);
-        pwm_set_gpio_level(buzzer, wrap_value_grave/3); // Ciclo de trabalho de 50%
+        pwm_set_gpio_level(BUZZER, wrap_value_grave/3); // Ciclo de trabalho de 50%
         sleep_ms(200); // Tempo de cada "PEN"
 
         // Toca a frequência "aguda" (PEN)
         pwm_set_wrap(slice_num, wrap_value_agudo);
-        pwm_set_gpio_level(buzzer, wrap_value_agudo/3); // Ciclo de trabalho de 50%
+        pwm_set_gpio_level(BUZZER, wrap_value_agudo/3); // Ciclo de trabalho de 50%
         sleep_ms(200); // Tempo de cada "PEN"
     }
 
-    // Desliga o buzzer
-    pwm_set_gpio_level(buzzer, 0);
+    // Desliga o BUZZER
+    pwm_set_gpio_level(BUZZER, 0);
 }
 
 int main(){
+    // Variáveis referentes a matriz de LED's
     PIO pio = pio0;
     uint sm = 0;
     uint offset = pio_add_program(pio, &pio_matriz_program);
@@ -94,12 +96,14 @@ int main(){
     setup_inicial();
 
     while (true) {
+        // Lê os valores do eixo X e Y
         adc_select_input(0);
         uint16_t joyX_valor = adc_read();
         adc_select_input(1);
         uint16_t joyY_valor = adc_read();
         printf("VRX: %d | VRY: %d\n", joyX_valor, joyY_valor);
-        if(joyX_valor >= 3000 || joyY_valor >= 3000){
+        if(joyX_valor >= 3000 || joyY_valor >= 3000){ // Verifica se o nível de GLP está acima do limiar
+            // Liga o LED vermelho
             gpio_put(LED_GREEN, 0);
             gpio_put(LED_RED, 1);
 
@@ -109,6 +113,7 @@ int main(){
             ssd1306_draw_string(&ssd, "ELEVADO", 37, 40);
             ssd1306_send_data(&ssd);
             
+            // Soa o alarme e pisca a matriz de LED's, além de mostrar mensagem de cuidado
             while(joyX_valor >= 3000 || joyY_valor >= 3000){
                 acender_leds(pio, sm, 0.0, 0.0, 1.0);
                 sleep_ms(250);
@@ -120,7 +125,7 @@ int main(){
                 joyY_valor = adc_read();
             }
         }
-        else{
+        else{// Continua com o LED verde ligado e mensagem de níveis normais
             gpio_put(LED_GREEN, 1);
             gpio_put(LED_RED, 0);
             ssd1306_fill(&ssd, false);
@@ -132,7 +137,7 @@ int main(){
 
             limpar_todos_leds(pio, sm);
         }
-        sleep_ms(100);
+        sleep_ms(100); // Delay para diminuir frêquencia excessiva da CPU
     }
 
     return 0;
