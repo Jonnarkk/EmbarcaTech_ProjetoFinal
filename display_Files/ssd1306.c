@@ -153,46 +153,51 @@ void ssd1306_vline(ssd1306_t *ssd, uint8_t x, uint8_t y0, uint8_t y1, bool value
     ssd1306_pixel(ssd, x, y, value);
 }
 
-// Função para desenhar um caractere
-void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y)
-{
-  uint16_t index = 0;
-  char ver=c;
-  if (c >= 'A' && c <= 'Z')
-  {
-    index = (c - 'A' + 11) * 8; // Para letras maiúsculas
-  }else  if (c >= '0' && c <= '9')
-  {
-    index = (c - '0' + 1) * 8; // Adiciona o deslocamento necessário
-  } else if(c >= 'a' && c <= 'z'){
-    index = (c - 'a' + 37) * 8; // Para letras minúsculas
+// Função para desenhar um caractere no display
+void ssd1306_draw_char(ssd1306_t *ssd, char c, uint8_t x, uint8_t y) {
+  uint8_t index = (uint8_t)c;  // Obtém o índice do caractere
+  if(index == 135) {
+    index = 127;
+  } else {
+    if(index >= 129){
+      index = 0;
+    }
   }
   
-  for (uint8_t i = 0; i < 8; ++i)
-  {
-    uint8_t line = font[index + i];
-    for (uint8_t j = 0; j < 8; ++j)
-    {
-      ssd1306_pixel(ssd, x + i, y + j, line & (1 << j));
-    }
+  const uint8_t *char_data = font[index];  // Obtém os dados do caractere a partir da fonte
+
+  // Desenha cada linha do caractere
+  for (uint8_t i = 0; i < 8; i++) {
+      uint8_t line = char_data[i];  // Linha atual do caractere
+      for (uint8_t j = 0; j < 8; j++) {
+          if (line & 0x01) {  // Verifica o bit mais à direita
+              ssd1306_pixel(ssd, x + j, y + i, 1);  // Desenha o pixel
+          } else {
+              ssd1306_pixel(ssd, x + j, y + i, 0);  // Apaga o pixel
+          }
+          line >>= 1;  // Desloca para o próximo bit
+      }
   }
 }
 
-// Função para desenhar uma string
+// Função para desenhar uma string no display
 void ssd1306_draw_string(ssd1306_t *ssd, const char *str, uint8_t x, uint8_t y)
 {
-  while (*str)
-  {
-    ssd1306_draw_char(ssd, *str++, x, y);
-    x += 8;
-    if (x + 8 >= ssd->width)
-    {
-      x = 0;
-      y += 8;
-    }
-    if (y + 8 >= ssd->height)
-    {
-      break;
-    }
+while (*str) {
+  ssd1306_draw_char(ssd, *str++, x, y);  // Desenha cada caractere da string
+  x += 8;  // Move para a próxima posição horizontal
+  if (x + 8 >= ssd->width) {  // Se a linha estiver cheia, vai para a próxima linha
+    x = 0;
+    y += 8;
   }
+  if (y + 8 >= ssd->height) {  // Se não houver espaço vertical, sai
+    break;
+  }
+}
+}
+
+// Função para centralizar o texto no display de 128x64 pixels
+int centralizar_texto(const char *str) {
+  int largura_texto = strlen(str) * 8;  // Cada caractere ocupa 8 pixels de largura
+  return (128 - largura_texto) / 2;      // Calcula a posição central
 }
