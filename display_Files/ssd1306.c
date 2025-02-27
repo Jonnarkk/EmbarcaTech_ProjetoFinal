@@ -201,3 +201,18 @@ int centralizar_texto(const char *str) {
   int largura_texto = strlen(str) * 8;  // Cada caractere ocupa 8 pixels de largura
   return (128 - largura_texto) / 2;      // Calcula a posição central
 }
+
+// Função para desenho
+void ssd1306_draw_24x24_image(ssd1306_t *ssd, const uint8_t *bitmap, uint8_t x, uint8_t y) {
+  for (int i = 0; i < 24; i++) {          // Linhas (altura da imagem)
+      for (int j = 0; j < 24; j++) {      // Colunas (largura da imagem)
+          // Calcula o byte e o bit correspondente ao pixel
+          uint8_t byte_index = i * 3 + (j / 8);  // Cada linha tem 3 bytes (24 pixels)
+          uint8_t bit_index = 7 - (j % 8);       // Inverte a ordem dos bits dentro do byte
+          uint8_t pixel = (bitmap[byte_index] >> bit_index) & 0x01; // Extrai o bit
+
+          // Desenha o pixel na posição correta
+          ssd1306_pixel(ssd, x + j, y + i, pixel);
+      }
+  }
+}

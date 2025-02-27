@@ -106,23 +106,31 @@ int main(){
             // Liga o LED vermelho
             gpio_put(LED_GREEN, 0);
             gpio_put(LED_RED, 1);
-
-            ssd1306_fill(&ssd, false);
-            ssd1306_draw_string(&ssd, "CUIDADO!!", centralizar_texto("CUIDADO!!"), 20);
-            ssd1306_draw_string(&ssd, "NIVEIS DE GAS", centralizar_texto("NIVEIS DE GAS"), 30);
-            ssd1306_draw_string(&ssd, "ELEVADOS", centralizar_texto("ELEVADOS"), 40);
-            ssd1306_send_data(&ssd);
             
             // Soa o alarme e pisca a matriz de LED's, além de mostrar mensagem de cuidado
             while(joyX_valor >= 3000 || joyY_valor >= 3000){
                 acender_leds(pio, sm, 0.0, 0.0, 1.0);
                 sleep_ms(250);
                 limpar_todos_leds(pio, sm);
+                
+                ssd1306_fill(&ssd, false);
+                ssd1306_draw_string(&ssd, "CUIDADO!!", centralizar_texto("CUIDADO!!"), 20);
+                ssd1306_draw_string(&ssd, "NIVEIS DE GAS", centralizar_texto("NIVEIS DE GAS"), 30);
+                ssd1306_draw_string(&ssd, "ELEVADOS", centralizar_texto("ELEVADOS"), 40);
+                ssd1306_send_data(&ssd);
+                
                 sirene(30, 700, 1300);
+                
                 adc_select_input(0);
                 joyX_valor = adc_read();
                 adc_select_input(1);
                 joyY_valor = adc_read();
+                
+                ssd1306_fill(&ssd, false);
+                ssd1306_draw_24x24_image(&ssd, caveira, 55, 20);
+                ssd1306_send_data(&ssd);
+
+                sleep_ms(100);
             }
         }
         else{// Continua com o LED verde ligado e mensagem de níveis normais
